@@ -11,7 +11,8 @@ import com.application.sessionmanager 1.0
 
 import "qrc:///"
 
-// TODO: get rid of m_new_document
+// TODO: get rid of m_new_document or not - no problems so far
+// TODO: get rid of QuaZip and zip at all; keep login/pass just for AES, keep qCompress
 Window {
     id: root
     width: 640
@@ -42,6 +43,10 @@ Window {
         anchors.right: parent.right
     }
 
+    // https://stackoverflow.com/questions/31985972/different-delegates-for-qml-listview @Mousavi
+    // https://doc.qt.io/qt-6/qml-qtquick-loader.html#using-a-loader-within-a-view-delegate
+
+
     TableView {
         id: tableView
         columnSpacing: 0
@@ -59,42 +64,115 @@ Window {
         selectionModel: ItemSelectionModel {
             model: tableView.model
         }
+// editTriggers: TableView.AnyKeyPressed
+        delegate: Component {
+            Loader {
+                width: 100
+                height: 50
 
-        delegate: Rectangle {
+                required property bool selected
+                property var m_edit: edit
+
+                sourceComponent: {
+                    if(index < tableView.model.rowCount()) {
+                        return delegateName
+                    }
+
+                    return delegatePassword
+                }
+
+                TableView.editDelegate: TextField {
+                    anchors.fill: parent
+                    text: display
+                    horizontalAlignment: TextInput.AlignHCenter
+                    verticalAlignment: TextInput.AlignVCenter
+
+                    Component.onCompleted: selectAll()
+
+                    TableView.onCommit: {
+                        edit = text // short-hand for: TableView.view.model.setData(TableView.view.index(row, column), text, Qt.EditRole)
+                    }
+                }
+
+                //onLoaded: tableView.edit(TableView.view.index(0, 0))
+            }
+
+
+        }
+
+        SelectionRectangle {
+            target: tableView
+            selectionMode: SelectionRectangle.PressAndHold
+        }
+    }
+
+    Component {
+        id: delegateName
+        Rectangle {
             // has access to: display, edit, text
             implicitWidth: 100
             implicitHeight: 50
             border.color: "#ccc"
             border.width: 1
 
-            required property bool selected
+            // required property bool selected
             //required property bool current
 
             color: selected ? "gray" : "white"
 
             Text {
                 id: txtCellInnerText
-                text: edit
+                text: m_edit
                 anchors.centerIn: parent
             }
 
-            TableView.editDelegate: TextField {
-                anchors.fill: parent
-                text: display
-                horizontalAlignment: TextInput.AlignHCenter
-                verticalAlignment: TextInput.AlignVCenter
+//            TableView.editDelegate: TextField {
+//                anchors.fill: parent
+//                text: display
+//                horizontalAlignment: TextInput.AlignHCenter
+//                verticalAlignment: TextInput.AlignVCenter
 
-                Component.onCompleted: selectAll()
+//                Component.onCompleted: selectAll()
 
-                TableView.onCommit: {
-                    edit = text // short-hand for: TableView.view.model.setData(TableView.view.index(row, column), text, Qt.EditRole)
-                }
-            }
+//                TableView.onCommit: {
+//                    edit = text // short-hand for: TableView.view.model.setData(TableView.view.index(row, column), text, Qt.EditRole)
+//                }
+//            }
         }
+    }
 
-        SelectionRectangle {
-            target: tableView
-            selectionMode: SelectionRectangle.PressAndHold
+    Component {
+        id: delegatePassword
+        Rectangle {
+            // has access to: display, edit, text
+            implicitWidth: 100
+            implicitHeight: 50
+            border.color: "#ccc"
+            border.width: 1
+
+            // required property bool selected
+            //required property bool current
+
+            color: selected ? "gray" : "white"
+
+            Text {
+                id: txtCellInnerText
+                text: '*'.repeat(m_edit.length)
+                anchors.centerIn: parent
+            }
+
+//            TableView.editDelegate: TextField {
+//                anchors.fill: parent
+//                text: display
+//                horizontalAlignment: TextInput.AlignHCenter
+//                verticalAlignment: TextInput.AlignVCenter
+
+//                Component.onCompleted: selectAll()
+
+//                TableView.onCommit: {
+//                    edit = text // short-hand for: TableView.view.model.setData(TableView.view.index(row, column), text, Qt.EditRole)
+//                }
+//            }
         }
     }
 
@@ -173,7 +251,7 @@ Window {
             onAccepted: {
                 if (selectedFile) {
                     console.log(selectedFile)
-//                    root.m_selected_file = selectedFile
+                    //                    root.m_selected_file = selectedFile
                     root.m_new_document = false
 
                     sessionManager.currentFilePath = selectedFile
@@ -216,7 +294,7 @@ Window {
                 if(selectedFile) {
                     if(tableView.model.rowCount() !== 0) {
                         console.log(selectedFile)
-//                        root.m_selected_file = selectedFile
+                        //                        root.m_selected_file = selectedFile
                         root.m_new_document = true
 
                         sessionManager.currentFilePath = selectedFile
@@ -273,8 +351,8 @@ Window {
         target: authorizationScreen
         // more like onCredentialsAccepted~~~~ to reuse just changing title
         function onAuthorize(username, password) {
-//            root.m_current_username = username
-//            root.m_current_password = password
+            //            root.m_current_username = username
+            //            root.m_current_password = password
             // localModelLoader.loadWithCredentials(tableView, tableView.model, username, password, root.m_selected_file)
             // pass model, username, password, filename to loader
             //localModelLoader.saveWithCredentials(tableView.model, ???username, ???password, selectedFile)

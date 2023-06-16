@@ -7,7 +7,7 @@ LocalModelLoader::LocalModelLoader(QObject *parent)
 
 }
 
-
+/*
 //void LocalModelLoader::save(SPMModel* model)
 //{
 //    QString prefix = QDir::currentPath() + QDir::separator();
@@ -60,6 +60,7 @@ LocalModelLoader::LocalModelLoader(QObject *parent)
 
 //    qDebug() << "SAVED!" << model->rowCount() << model->columnCount();
 //}
+*/
 
 void LocalModelLoader::loadWithCredentials(QObject* parent, QObject* currentModel, QString username, QString password, QString filename)
 {
