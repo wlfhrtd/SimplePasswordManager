@@ -4,23 +4,7 @@
 SPMModel::SPMModel(QObject *parent)
     : QAbstractTableModel{parent}
 {
-//    QStringList row0;
-//    row0.resize(columns); // 2
-//    row0.fill("");
-//    m_table.append(row0);
-//    m_table.append(row0);
-//    m_table.append(row0);
-//    m_table.append(row0);
-//    m_table.append(row0);
-//    m_table.append(row0);
-//    m_table.append(row0);
-//    m_table.append(row0);
-//    m_table.append(row0);
-//    m_table.append(row0);
-//    m_table.append(row0);
-//    m_table.append(row0);
-//    m_table.append(row0);
-//    m_table.append(row0);
+
 }
 
 
@@ -35,8 +19,6 @@ QVariant SPMModel::data(const QModelIndex &index, int role) const
 
 bool SPMModel::setData(const QModelIndex &index, const QVariant &value, int role)
 {
-// qDebug() << "Before setData(): " << m_table;
-
     if(role != Qt::EditRole || data(index, role) == value) {
         return false;
     }
@@ -44,7 +26,7 @@ bool SPMModel::setData(const QModelIndex &index, const QVariant &value, int role
     m_table[index.row()][index.column()] = value.toString();
 
     emit dataChanged(index, index, {role});
-// qDebug() << "After setData(): " << m_table;
+
     return true;
 }
 
@@ -66,7 +48,6 @@ QVariant SPMModel::headerData(int section, Qt::Orientation orientation, int role
 
 bool SPMModel::insertRows(int row, int count, const QModelIndex &parent)
 {
-// qDebug() << "Before insertRows(): " << m_table;
     beginInsertRows(parent, row, row + count - 1);
 
     for (int i = 0; i < count; ++i) {
@@ -75,7 +56,7 @@ bool SPMModel::insertRows(int row, int count, const QModelIndex &parent)
     }
 
     endInsertRows();
-// qDebug() << "After insertRows(): " << m_table;
+
     return true;
 }
 

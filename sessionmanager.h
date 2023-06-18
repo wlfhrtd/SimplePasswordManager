@@ -2,18 +2,17 @@
 #define SESSIONMANAGER_H
 
 #include <QObject>
-#include "qqmlintegration.h"
 
 
 class SessionManager : public QObject
 {
 private:
     Q_OBJECT
-    QML_ELEMENT
 
     Q_PROPERTY(QString username READ username WRITE setUsername NOTIFY usernameChanged);
     Q_PROPERTY(QString password READ password WRITE setPassword NOTIFY passwordChanged);
     Q_PROPERTY(QString currentFilePath READ currentFilePath WRITE setCurrentFilePath NOTIFY currentFilePathChanged);
+
 
     QString m_username;
     QString m_password;

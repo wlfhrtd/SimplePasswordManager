@@ -4,7 +4,6 @@ import QtQuick.Layouts
 
 
 Item {
-
     property alias dialog: authorizationDialog
 
     signal authorize(string username, string password)

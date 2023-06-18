@@ -11,6 +11,7 @@ class QClipboardQtQuickWrapper : public QObject
 private:
     Q_OBJECT
 
+
     QClipboard* m_clipboard;
 
 public:
@@ -18,10 +19,16 @@ public:
         m_clipboard = QGuiApplication::clipboard();
     }
 
-    Q_INVOKABLE void setText(QString text) {
+    Q_INVOKABLE inline void setText(const QString& text) {
         m_clipboard->setText(text, QClipboard::Clipboard);
         // m_clipboard->setText(text, QClipboard::Selection); // X11
+
+        emit copiedToClipboard();
     }
+
+signals:
+    void copiedToClipboard();
+
 };
 
 #endif // QCLIPBOARDQTQUICKWRAPPER_H

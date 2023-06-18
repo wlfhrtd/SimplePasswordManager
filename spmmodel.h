@@ -2,14 +2,12 @@
 #define SPMMODEL_H
 
 #include <QAbstractTableModel>
-#include <QQmlEngine>
 
 
 class SPMModel : public QAbstractTableModel
 {
 private:
     Q_OBJECT
-    QML_ELEMENT
 
 
     static constexpr int columns = 2;
