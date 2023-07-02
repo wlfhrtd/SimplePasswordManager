@@ -3,6 +3,7 @@ import QtQuick.Window
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Dialogs
+import QtQuick.Controls.Universal
 
 import com.application.spmmodel 1.0
 import com.application.qclipboardqtquickwrapper 1.0
@@ -12,10 +13,7 @@ import com.application.settingsmanager 1.0
 
 import "qrc:///"
 
-// TODO: get rid of m_new_document or not - no problems so far
 
-// TODO: arrange buttons somehow; may be one with "..."
-// TODO: layout & font & dark theme
 Window {
     id: root
     flags: Qt.Window | Qt.WindowTitleHint | Qt.WindowSystemMenuHint | Qt.WindowCloseButtonHint
@@ -24,6 +22,9 @@ Window {
     height: 480
     visible: true
     title: "SimplePasswordManager"
+
+    Universal.theme: Universal.System // Universal.Light // Universal.Dark
+    Universal.accent: Universal.Cobalt
 
     property bool m_new_document: false
 
@@ -37,6 +38,7 @@ Window {
                         "WindowWidth" : root.width,
                         "WindowHeight" : root.height,
                         "AlwaysOnTop" : checkBoxAlwaysOnTop.checked ? 1 : 0, // win32 registry has no boolean type; |0 or ^0 should be slower
+                        "ThemeStyle" : comboBoxThemeStyle.currentIndex,
                     })
     }
 
@@ -49,6 +51,7 @@ Window {
         root.width = settings["WindowWidth"]
         root.height = settings["WindowHeight"]
         checkBoxAlwaysOnTop.checked = settings["AlwaysOnTop"]
+        comboBoxThemeStyle.currentIndex = settings["ThemeStyle"]
     }
 
     Dialog {
@@ -65,17 +68,21 @@ Window {
         closePolicy: Popup.CloseOnEscape
 
         property bool alwaysOnTop: false
+        property int themeStyleIndex: -1
 
         Component.onCompleted: {
             dialogSettings.alwaysOnTop = checkBoxAlwaysOnTop.checked
+            dialogSettings.themeStyleIndex = comboBoxThemeStyle.currentIndex
         }
 
         onAccepted: {
             dialogSettings.alwaysOnTop = checkBoxAlwaysOnTop.checked
+            dialogSettings.themeStyleIndex = comboBoxThemeStyle.currentIndex
         }
 
         onRejected: {
             checkBoxAlwaysOnTop.checked = dialogSettings.alwaysOnTop
+            comboBoxThemeStyle.currentIndex = dialogSettings.themeStyleIndex
         }
 
         onAlwaysOnTopChanged: {
@@ -86,6 +93,10 @@ Window {
             }
 
             root.flags |= Qt.WindowStaysOnTopHint
+        }
+
+        onThemeStyleIndexChanged: {
+            root.Universal.theme = comboBoxThemeStyle.valueAt(dialogSettings.themeStyleIndex)
         }
 
         ColumnLayout {
@@ -99,11 +110,11 @@ Window {
                     text: qsTr("Current window position: ")
                 }
 
-                Text {
+                Label {
                     text: root.x
                 }
 
-                Text {
+                Label {
                     text: root.y
                 }
             }
@@ -113,12 +124,38 @@ Window {
                     text: qsTr("Current window size: ")
                 }
 
-                Text {
+                Label {
                     text: root.width
                 }
 
-                Text {
+                Label {
                     text: root.height
+                }
+            }
+
+            Label {
+                text: qsTr("Theme style")
+            }
+
+            ComboBox {
+                id: comboBoxThemeStyle
+
+                textRole: "text"
+                valueRole: "value"
+
+                model: ListModel {
+                    ListElement {
+                        text: "Light"
+                        value: Universal.Light
+                    }
+                    ListElement {
+                        text: "Dark"
+                        value: Universal.Dark
+                    }
+                    ListElement {
+                        text: "System"
+                        value: Universal.System
+                    }
                 }
             }
         }
@@ -134,11 +171,11 @@ Window {
 
         focus: true
         modal: true
-        title: "Error"
+        title: qsTr("Error")
         standardButtons: Dialog.Ok
         closePolicy: Popup.CloseOnEscape
 
-        Text {
+        Label {
             id: txtDialogError
             anchors.fill: parent
             verticalAlignment: Text.AlignVCenter
@@ -151,6 +188,21 @@ Window {
     LocalModelLoader {
         id: localModelLoader
 
+        onModelCreated: {
+            screenMainMenu.visible = false
+            rowBottomButtons.visible = true
+        }
+
+        onModelLoaded: {
+            screenMainMenu.visible = false
+            rowBottomButtons.visible = true
+        }
+
+        onModelDestroyed: {
+            screenMainMenu.visible = true
+            rowBottomButtons.visible = false
+        }
+
         onErrorOccurred: {
             txtDialogError.text = localModelLoader.errorMessage
             dialogError.open()
@@ -160,22 +212,57 @@ Window {
     HorizontalHeaderView {
         id: horizontalHeader
         syncView: tableView
+
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right
+
+        boundsBehavior: Flickable.StopAtBounds
     }
 
     TableView {
         id: tableView
         columnSpacing: 0
         rowSpacing: 0
+
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: horizontalHeader.bottom
-        anchors.bottom: rowButtons.top
-        clip: true
+        anchors.bottom: rowBottomButtons.top
 
+        boundsBehavior: Flickable.StopAtBounds
+        clip: true
         ScrollBar.vertical: ScrollBar {}
+
+        property var arrayColumnsWidth: []
+
+        property int lastColumnIndex: tableView.columns - 1
+
+        columnWidthProvider: function(column) {
+            // get last column width
+            if(column === lastColumnIndex) {
+                // decrease total width by SUM of width of all columns except last to get last column's width
+                arrayColumnsWidth[column] = tableView.width
+
+                for(let i = 0; i < lastColumnIndex; i++) {
+                    arrayColumnsWidth[column] -= arrayColumnsWidth[i]
+                }
+
+                return arrayColumnsWidth[column]
+            }
+
+            let width = explicitColumnWidth(column)
+
+            if (width >= 0) {
+                arrayColumnsWidth[column] = width;
+
+                return width;
+            }
+
+            arrayColumnsWidth[column] = implicitColumnWidth(column)
+
+            return arrayColumnsWidth[column]
+        }
 
         model: null
 
@@ -187,20 +274,30 @@ Window {
 
         delegate: Component {
             Loader {
-                width: 100
-                height: 50
+                // width: 100
+                // height: 50
 
                 required property bool selected
                 required property bool current
                 property var m_edit: edit
+                // threshold index to apply delegateHiddenText to last column "Password"
+                // and delegateRegularText to all other columns (to left from "Password" column)
+                property int thresholdIndex: tableView.rows * (tableView.columns - 1)
 
                 sourceComponent: {
                     if(tableView.model !== null) {
-                        if(index < tableView.model.rowCount()) {
-                            return delegateName
+                        /*
+                        index increases towards rows then columns like
+                        0 3 6
+                        1 4 7
+                        2 5 8
+                        condition declared in "if" below excludes last column to apply another delegate
+                        */
+                        if(index < thresholdIndex) {
+                            return delegateRegularText
                         }
 
-                        return delegatePassword
+                        return delegateHiddenText
                     }
 
                     return null
@@ -218,7 +315,7 @@ Window {
                         edit = text // short-hand for: TableView.view.model.setData(TableView.view.index(row, column), text, Qt.EditRole)
                     }
                 }
-
+                // onSelectedChanged: current = selected
                 onCurrentChanged: {
                     tableView.selectionModel.select(
                                 tableView.index(tableView.currentRow, tableView.currentColumn),
@@ -229,18 +326,19 @@ Window {
     }
 
     Component {
-        id: delegateName
+        id: delegateRegularText
+
         Rectangle {
             // has access to: display, edit, text, selected, current
-            id: delegateNameInnerRectangle
-            implicitWidth: 100
+            id: delegateRegularTextInnerRectangle
+            implicitWidth: root.width / tableView.columns
             implicitHeight: 50
+
             border.color: "#ccc"
             border.width: 1
+            color: selected ? "gray" : Universal.background
 
-            color: selected ? "gray" : "white"
-
-            Text {
+            Label {
                 id: txtCellInnerText
                 text: m_edit
                 anchors.centerIn: parent
@@ -249,17 +347,18 @@ Window {
     }
 
     Component {
-        id: delegatePassword
+        id: delegateHiddenText
+
         Rectangle {
             // has access to: display, edit, text, selected, current
-            implicitWidth: 100
+            implicitWidth: root.width / tableView.columns
             implicitHeight: 50
+
             border.color: "#ccc"
             border.width: 1
+            color: selected ? "gray" : Universal.background
 
-            color: selected ? "gray" : "white"
-
-            Text {
+            Label {
                 id: txtCellInnerText
                 text: '*'.repeat(m_edit.length)
                 anchors.centerIn: parent
@@ -267,16 +366,74 @@ Window {
         }
     }
 
-    GridLayout {
-        id: rowButtons
+    Menu {
+        id: menuExtraButtons
+
+        MenuItem {
+            text: qsTr("Save")
+
+            onTriggered: {
+                if(tableView.model !== null) {
+                    if(!m_new_document) {
+                        localModelLoader.saveWithCredentials(
+                                    tableView.model, sessionManager.username,
+                                    sessionManager.password, sessionManager.currentFilePath)
+
+                        return;
+                    }
+
+                    dialogSaveAs.open()
+                }
+            }
+        }
+
+        MenuItem {
+            text: qsTr("Save as")
+
+            onTriggered: {
+                if(tableView.model !== null) {
+                    dialogSaveAs.open()
+                }
+            }
+        }
+
+        MenuItem {
+            text: qsTr("Close")
+
+            onTriggered: {
+                if(tableView.model !== null) {
+                    dialogCloseCurrentDocument.open()
+                }
+            }
+        }
+
+        MenuItem {
+            text: qsTr("Settings")
+
+            onTriggered: {
+                dialogSettings.open()
+            }
+        }
+    }
+
+    Pane {
+        anchors.bottom: parent.bottom
+        width: parent.width
+        height: rowBottomButtons.height
+    }
+
+    RowLayout {
+        id: rowBottomButtons
         anchors.bottom: parent.bottom
         width: parent.width
 
-        columns: 3
+        visible: false
 
-        RoundButton {
+        Button {
             id: btnAddNew
             text: "+"
+
+            Layout.alignment: Qt.AlignHCenter
 
             onClicked: {
                 if(tableView.model !== null) {
@@ -285,85 +442,78 @@ Window {
             }
         }
 
-        RoundButton {
+        Dialog {
+            id: dialogRemoveSelectedRecord
+
+            x: (root.width - width) / 2
+            y: (root.height - height) / 2
+            parent: Overlay.overlay
+
+            focus: true
+            modal: true
+            title: qsTr("Delete record")
+            standardButtons: Dialog.Yes | Dialog.No
+            closePolicy: Popup.CloseOnEscape
+
+            Label {
+                id: txtDialogRemoveSelectedRecordInnerText
+                text: qsTr("Are you sure you want to delete this record?")
+            }
+
+            onAccepted: {
+                tableView.model.removeRows(tableView.currentRow, 1)
+            }
+        }
+
+        Button {
             id: btnRemoveRecord
             text: "-"
 
+            Layout.alignment: Qt.AlignHCenter
+
             onClicked: {
                 if(tableView.currentRow !== -1) {
-                    tableView.model.removeRows(tableView.currentRow, 1)
+                    dialogRemoveSelectedRecord.open()
                 }
             }
         }
 
-        RoundButton {
+        Button {
             id: btnCopyPasswordToClipboard
             text: qsTr("Copy")
+
+            Layout.alignment: Qt.AlignHCenter
 
             onClicked: {
                 if(tableView.currentRow !== -1) {
                     clipboard.setText(
-                                tableView.model.data(tableView.model.index(tableView.currentRow, 1), Qt.DisplayRole)) // 1 is passwords column
+                                tableView.model.data(
+                                    // tableView.lastColumnIndex is passwords column and currently == 2
+                                    tableView.model.index(tableView.currentRow, tableView.lastColumnIndex), Qt.DisplayRole))
                 }
             }
         }
 
-        RoundButton {
-            id: btnSaveToLocalFile
-            text: qsTr("Save")
+        Dialog {
+            id: dialogCloseCurrentDocument
 
-            onClicked: {
-                if(tableView.model !== null) {
-                    if(tableView.model.rowCount() !== 0 && !m_new_document) {
-                        localModelLoader.saveWithCredentials(
-                                    tableView.model, sessionManager.username, sessionManager.password, sessionManager.currentFilePath)
+            x: (root.width - width) / 2
+            y: (root.height - height) / 2
+            parent: Overlay.overlay
 
-                        return;
-                    }
+            focus: true
+            modal: true
+            title: qsTr("Save changes reminder")
+            standardButtons: Dialog.Yes | Dialog.No
+            closePolicy: Popup.CloseOnEscape
 
-                    if (tableView.model.rowCount() !== 0) {
-                        dialogSaveAs.open()
-                    }
-                }
+            Label {
+                id: txtDialogCloseCurrentDocumentInnerText
+                text: qsTr("All unsaved changes will be lost. Are you sure want to close document?")
             }
-        }
-
-        FileDialog {
-            id: dialogOpenFile
-            title: qsTr("Choose file to open")
-            fileMode: FileDialog.OpenFile
-            nameFilters: ["MasterPassword files (*.mpdb)"]
 
             onAccepted: {
-                if (selectedFile) {
-                    root.m_new_document = false
-
-                    sessionManager.currentFilePath = selectedFile
-
-                    authorizationScreen.dialog.open()
-                }
-            }
-        }
-
-        RoundButton {
-            id: btnOpenLocalFile
-            text: qsTr("Open")
-
-            onClicked: {
-                m_new_document = false
-
-                dialogOpenFile.open()
-            }
-        }
-
-        RoundButton {
-            id: btnNewLocalFile
-            text: qsTr("Create new")
-
-            onClicked: {
-                root.m_new_document = true
-
-                localModelLoader.create(tableView, tableView.model)
+                localModelLoader.unloadModel(tableView, tableView.model)
             }
         }
 
@@ -385,81 +535,67 @@ Window {
             }
         }
 
-        RoundButton {
-            id: btnSaveAs
-            text: qsTr("Save as")
+        Button {
+            text: qsTr("Menu")
 
-            onClicked: {
-                if(tableView.model !== null) {
-                    dialogSaveAs.open()
-                }
-            }
-        }
+            Layout.alignment: Qt.AlignHCenter
 
-        Dialog {
-            id: dialogCloseCurrentDocument
-
-            x: (root.width - width) / 2
-            y: (root.height - height) / 2
-            parent: Overlay.overlay
-
-            focus: true
-            modal: true
-            title: qsTr("Save changes reminder")
-            standardButtons: Dialog.Ok | Dialog.Cancel
-            closePolicy: Popup.CloseOnEscape
-
-            Text {
-                id: txtDialogCloseCurrentDocumentInnerText
-                text: qsTr("All unsaved changes will be lost. Are you sure want to close document?")
-            }
-
-            onAccepted: {
-                localModelLoader.unloadModel(tableView, tableView.model)
-            }
-        }
-
-        RoundButton {
-            id: btnCloseCurrentDocument
-            text: qsTr("Close")
-
-            onClicked: {
-                dialogCloseCurrentDocument.open()
-            }
-        }
-
-        RoundButton {
-            id: btnSettingsDialog
-            text: qsTr("Settings")
-
-            onClicked: {
-                dialogSettings.open()
-            }
+            onClicked: menuExtraButtons.popup()
         }
     }
 
-    Connections {
-        target: authorizationScreen
+    MainMenuScreen {
+        id: screenMainMenu
+        anchors.fill: parent
 
-        function onAuthorize(username, password) {
-            sessionManager.username = username
-            sessionManager.password = password
+        Connections {
+            target: screenMainMenu
 
-            if (!root.m_new_document) {
-                localModelLoader.loadWithCredentials(
-                            tableView, tableView.model, sessionManager.username, sessionManager.password, sessionManager.currentFilePath)
+            function onFileSelectionDone(selectedFilePath) {
+                root.m_new_document = false
 
-                return;
+                sessionManager.currentFilePath = selectedFilePath
+
+                authorizationScreen.dialog.title = qsTr("Authorization")
+                authorizationScreen.dialog.open()
             }
 
-            localModelLoader.saveWithCredentials(
-                        tableView.model, sessionManager.username, sessionManager.password, sessionManager.currentFilePath)
+            function onButtonOpenLocalFileClicked() {
+                m_new_document = false
+            }
+
+            function onButtonCreateNewLocalFileClicked() {
+                root.m_new_document = true
+
+                localModelLoader.create(tableView, tableView.model)
+            }
         }
     }
 
     AuthorizationScreen {
         id: authorizationScreen
         anchors.centerIn: parent
+
+        Connections {
+            target: authorizationScreen
+
+            function onAuthorize(username, password) {
+                sessionManager.username = username
+                sessionManager.password = password
+
+                if (!root.m_new_document) {
+                    localModelLoader.loadWithCredentials(
+                                tableView, tableView.model, sessionManager.username,
+                                sessionManager.password, sessionManager.currentFilePath)
+
+                    return;
+                }
+
+                localModelLoader.saveWithCredentials(
+                            tableView.model, sessionManager.username,
+                            sessionManager.password, sessionManager.currentFilePath)
+            }
+        }
     }
 
     QClipboardQtQuickWrapper {

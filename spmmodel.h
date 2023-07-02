@@ -10,7 +10,7 @@ private:
     Q_OBJECT
 
 
-    static constexpr int columns = 2;
+    static const int columns = 3;
     QList<QStringList> m_table;
 
 public:

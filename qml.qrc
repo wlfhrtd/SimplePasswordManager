@@ -1,5 +1,6 @@
 <RCC>
     <qresource prefix="/">
         <file>AuthorizationScreen.qml</file>
+        <file>MainMenuScreen.qml</file>
     </qresource>
 </RCC>

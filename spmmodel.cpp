@@ -37,6 +37,8 @@ QVariant SPMModel::headerData(int section, Qt::Orientation orientation, int role
         case 0:
             return "Instance";
         case 1:
+            return "Login";
+        case 2:
             return "Password";
         default:
             return "";

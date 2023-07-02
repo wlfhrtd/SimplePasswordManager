@@ -1,23 +1,23 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import QtQuick.Controls.Universal
 
 
 Item {
-    property alias dialog: authorizationDialog
+    property alias dialog: m_authorizationDialog
 
     signal authorize(string username, string password)
 
     Dialog {
-        id: authorizationDialog
+        id: m_authorizationDialog
 
-        x: (root.width - width) / 2
-        y: (root.height - height) / 2
+        anchors.centerIn: parent
         parent: Overlay.overlay
 
         focus: true
         modal: true
-        title: "Authorization"
+        title: qsTr("Authorization")
         standardButtons: Dialog.Ok | Dialog.Cancel
         closePolicy: Popup.CloseOnEscape
 
@@ -26,25 +26,25 @@ Item {
             anchors.fill: parent
 
             Label {
-                id: lblUsername
+                id: m_lblUsername
                 text: qsTr("Username")
                 Layout.fillWidth: true
             }
 
             TextField {
-                id: txtUsername
+                id: m_txtUsername
                 placeholderText: qsTr("Enter username")
                 Layout.fillWidth: true
                 focus: true
             }
 
             Label {
-                id: lblPassword
+                id: m_lblPassword
                 text: qsTr("Password")
             }
 
             TextField {
-                id: txtPassword
+                id: m_txtPassword
                 Layout.fillWidth: true
                 placeholderText: qsTr("Enter password")
                 echoMode: TextInput.Password
@@ -52,17 +52,17 @@ Item {
         }
 
         onAccepted: {
-            authorize(txtUsername.text, txtPassword.text)
+            authorize(m_txtUsername.text, m_txtPassword.text)
 
-            txtUsername.text = ""
-            txtPassword.text = ""
-            txtUsername.focus = true
+            m_txtUsername.text = ""
+            m_txtPassword.text = ""
+            m_txtUsername.focus = true
         }
 
         onRejected: {
-            txtUsername.text = ""
-            txtPassword.text = ""
-            txtUsername.focus = true
+            m_txtUsername.text = ""
+            m_txtPassword.text = ""
+            m_txtUsername.focus = true
         }
     }
 }
