@@ -49,6 +49,14 @@ Item {
                 placeholderText: qsTr("Enter password")
                 echoMode: TextInput.Password
             }
+
+            Keys.onEnterPressed: {
+                m_authorizationDialog.accept()
+            }
+
+            Keys.onReturnPressed: {
+                m_authorizationDialog.accept()
+            }
         }
 
         onAccepted: {
@@ -63,6 +71,6 @@ Item {
             m_txtUsername.text = ""
             m_txtPassword.text = ""
             m_txtUsername.focus = true
-        }
-    }
+        }       
+    }    
 }

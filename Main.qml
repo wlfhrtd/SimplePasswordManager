@@ -37,8 +37,8 @@ Window {
                         "WindowY" : root.y,
                         "WindowWidth" : root.width,
                         "WindowHeight" : root.height,
-                        "AlwaysOnTop" : checkBoxAlwaysOnTop.checked ? 1 : 0, // win32 registry has no boolean type; |0 or ^0 should be slower
-                        "ThemeStyle" : comboBoxThemeStyle.currentIndex,
+                        "AlwaysOnTop" : settingsScreen.switchAlwaysOnTop.checked ? 1 : 0, // win32 registry has no boolean type; |0 or ^0 should be slower
+                        "ThemeStyle" : settingsScreen.comboBoxThemeStyle.currentIndex,
                     })
     }
 
@@ -50,115 +50,8 @@ Window {
         root.y = settings["WindowY"]
         root.width = settings["WindowWidth"]
         root.height = settings["WindowHeight"]
-        checkBoxAlwaysOnTop.checked = settings["AlwaysOnTop"]
-        comboBoxThemeStyle.currentIndex = settings["ThemeStyle"]
-    }
-
-    Dialog {
-        id: dialogSettings
-        title: qsTr("Settings")
-        standardButtons: Dialog.Ok | Dialog.Cancel
-        modal: true
-        focus: true
-
-        anchors.centerIn: parent
-        width: root.width / 2
-        height: root.height / 2
-        parent: Overlay.overlay
-        closePolicy: Popup.CloseOnEscape
-
-        property bool alwaysOnTop: false
-        property int themeStyleIndex: -1
-
-        Component.onCompleted: {
-            dialogSettings.alwaysOnTop = checkBoxAlwaysOnTop.checked
-            dialogSettings.themeStyleIndex = comboBoxThemeStyle.currentIndex
-        }
-
-        onAccepted: {
-            dialogSettings.alwaysOnTop = checkBoxAlwaysOnTop.checked
-            dialogSettings.themeStyleIndex = comboBoxThemeStyle.currentIndex
-        }
-
-        onRejected: {
-            checkBoxAlwaysOnTop.checked = dialogSettings.alwaysOnTop
-            comboBoxThemeStyle.currentIndex = dialogSettings.themeStyleIndex
-        }
-
-        onAlwaysOnTopChanged: {
-            if(!dialogSettings.alwaysOnTop) {
-                root.flags ^= Qt.WindowStaysOnTopHint
-
-                return;
-            }
-
-            root.flags |= Qt.WindowStaysOnTopHint
-        }
-
-        onThemeStyleIndexChanged: {
-            root.Universal.theme = comboBoxThemeStyle.valueAt(dialogSettings.themeStyleIndex)
-        }
-
-        ColumnLayout {
-            CheckBox {
-                id: checkBoxAlwaysOnTop
-                text: qsTr("Always On Top")
-            }
-
-            RowLayout {
-                Label {
-                    text: qsTr("Current window position: ")
-                }
-
-                Label {
-                    text: root.x
-                }
-
-                Label {
-                    text: root.y
-                }
-            }
-
-            RowLayout {
-                Label {
-                    text: qsTr("Current window size: ")
-                }
-
-                Label {
-                    text: root.width
-                }
-
-                Label {
-                    text: root.height
-                }
-            }
-
-            Label {
-                text: qsTr("Theme style")
-            }
-
-            ComboBox {
-                id: comboBoxThemeStyle
-
-                textRole: "text"
-                valueRole: "value"
-
-                model: ListModel {
-                    ListElement {
-                        text: "Light"
-                        value: Universal.Light
-                    }
-                    ListElement {
-                        text: "Dark"
-                        value: Universal.Dark
-                    }
-                    ListElement {
-                        text: "System"
-                        value: Universal.System
-                    }
-                }
-            }
-        }
+        settingsScreen.switchAlwaysOnTop.checked = settings["AlwaysOnTop"]
+        settingsScreen.comboBoxThemeStyle.currentIndex = settings["ThemeStyle"]
     }
 
     Dialog {
@@ -270,19 +163,22 @@ Window {
             model: tableView.model
         }
 
+        keyNavigationEnabled: true
+        pointerNavigationEnabled: true
+
         editTriggers: TableView.EditKeyPressed | TableView.DoubleTapped
 
         delegate: Component {
             Loader {
-                // width: 100
-                // height: 50
-
                 required property bool selected
                 required property bool current
                 property var m_edit: edit
                 // threshold index to apply delegateHiddenText to last column "Password"
                 // and delegateRegularText to all other columns (to left from "Password" column)
                 property int thresholdIndex: tableView.rows * (tableView.columns - 1)
+                property int m_index: index
+                property int m_row: row
+                property int m_column: column
 
                 sourceComponent: {
                     if(tableView.model !== null) {
@@ -315,7 +211,7 @@ Window {
                         edit = text // short-hand for: TableView.view.model.setData(TableView.view.index(row, column), text, Qt.EditRole)
                     }
                 }
-                // onSelectedChanged: current = selected
+
                 onCurrentChanged: {
                     tableView.selectionModel.select(
                                 tableView.index(tableView.currentRow, tableView.currentColumn),
@@ -343,6 +239,31 @@ Window {
                 text: m_edit
                 anchors.centerIn: parent
             }
+
+            MouseArea {
+                anchors.fill: parent
+                acceptedButtons: Qt.RightButton
+
+                onClicked: mouse => {
+                               if(mouse.button === Qt.RightButton) {
+                                   tableView.selectionModel.setCurrentIndex(
+                                       tableView.index(m_row, m_column),
+                                       ItemSelectionModel.Rows | ItemSelectionModel.ToggleCurrent)
+
+                                   menuCopy.popup()
+                               }
+                           }
+
+                onPressAndHold: mouse => {
+                                    if (mouse.source === Qt.MouseEventNotSynthesized) {
+                                        tableView.selectionModel.setCurrentIndex(
+                                            tableView.index(m_row, m_column),
+                                            ItemSelectionModel.Rows | ItemSelectionModel.ToggleCurrent)
+
+                                        menuCopy.popup()
+                                    }
+                                }
+            }
         }
     }
 
@@ -362,6 +283,31 @@ Window {
                 id: txtCellInnerText
                 text: '*'.repeat(m_edit.length)
                 anchors.centerIn: parent
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                acceptedButtons: Qt.RightButton
+
+                onClicked: mouse => {
+                               if(mouse.button === Qt.RightButton) {
+                                   tableView.selectionModel.setCurrentIndex(
+                                       tableView.index(m_row, m_column),
+                                       ItemSelectionModel.Rows | ItemSelectionModel.ToggleCurrent)
+
+                                   menuCopy.popup()
+                               }
+                           }
+
+                onPressAndHold: mouse => {
+                                    if (mouse.source === Qt.MouseEventNotSynthesized) {
+                                        tableView.selectionModel.setCurrentIndex(
+                                            tableView.index(m_row, m_column),
+                                            ItemSelectionModel.Rows | ItemSelectionModel.ToggleCurrent)
+
+                                        menuCopy.popup()
+                                    }
+                                }
             }
         }
     }
@@ -411,7 +357,37 @@ Window {
             text: qsTr("Settings")
 
             onTriggered: {
-                dialogSettings.open()
+                settingsScreen.dialogSettings.open()
+            }
+        }
+    }
+
+    Menu {
+        id: menuCopy
+
+        MenuItem {
+            text: qsTr("Copy Login")
+
+            onTriggered: {
+                if(tableView.currentRow !== -1) {
+                    clipboard.setText(
+                                tableView.model.data(
+                                    // logins column index, currently == 1
+                                    tableView.model.index(tableView.currentRow, 1), Qt.DisplayRole))
+                }
+            }
+        }
+
+        MenuItem {
+            text: qsTr("Copy Password")
+
+            onTriggered: {
+                if(tableView.currentRow !== -1) {
+                    clipboard.setText(
+                                tableView.model.data(
+                                    // tableView.lastColumnIndex is passwords column and currently == 2
+                                    tableView.model.index(tableView.currentRow, tableView.lastColumnIndex), Qt.DisplayRole))
+                }
             }
         }
     }
@@ -485,12 +461,7 @@ Window {
             Layout.alignment: Qt.AlignHCenter
 
             onClicked: {
-                if(tableView.currentRow !== -1) {
-                    clipboard.setText(
-                                tableView.model.data(
-                                    // tableView.lastColumnIndex is passwords column and currently == 2
-                                    tableView.model.index(tableView.currentRow, tableView.lastColumnIndex), Qt.DisplayRole))
-                }
+                menuCopy.popup()
             }
         }
 
@@ -608,5 +579,9 @@ Window {
 
     SettingsManager {
         id: settingsManager
+    }
+
+    SettingsScreen {
+        id: settingsScreen
     }
 }
