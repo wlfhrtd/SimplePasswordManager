@@ -6,6 +6,7 @@ import QtQuick.Controls.Universal
 
 Item {
     property alias dialog: m_authorizationDialog
+    property alias fontSize: m_authorizationDialog.font.pointSize
 
     signal authorize(string username, string password)
 
@@ -13,6 +14,9 @@ Item {
         id: m_authorizationDialog
 
         anchors.centerIn: parent
+        width: root.width * 0.66
+        height: root.height * 0.66
+
         parent: Overlay.overlay
 
         focus: true

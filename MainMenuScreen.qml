@@ -10,6 +10,8 @@ Item {
     signal buttonOpenLocalFileClicked()
     signal buttonCreateNewLocalFileClicked()
 
+    property alias fontSize: m_paneBackground.font.pointSize
+
     FileDialog {
         id: dialogOpenFile
         title: qsTr("Choose file to open")
@@ -24,6 +26,7 @@ Item {
     }
 
     Pane {
+        id: m_paneBackground
         anchors.fill: parent
 
         GridLayout {
@@ -49,6 +52,8 @@ Item {
                 Layout.columnSpan: 1
 
                 text: qsTr("Open")
+
+                // font.pixelSize: 24
 
                 onClicked: {
                     buttonOpenLocalFileClicked()

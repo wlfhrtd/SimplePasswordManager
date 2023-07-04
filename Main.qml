@@ -16,7 +16,7 @@ import "qrc:///"
 
 Window {
     id: root
-    flags: Qt.Window | Qt.WindowTitleHint | Qt.WindowSystemMenuHint | Qt.WindowCloseButtonHint
+    flags: Qt.Window | Qt.WindowTitleHint | Qt.WindowSystemMenuHint | Qt.WindowCloseButtonHint | Qt.Tool
 
     width: 320
     height: 480
@@ -39,6 +39,8 @@ Window {
                         "WindowHeight" : root.height,
                         "AlwaysOnTop" : settingsScreen.switchAlwaysOnTop.checked ? 1 : 0, // win32 registry has no boolean type; |0 or ^0 should be slower
                         "ThemeStyle" : settingsScreen.comboBoxThemeStyle.currentIndex,
+                        "SliderUIFontSize" : settingsScreen.sliderUIFontSize.value,
+                        "SliderTableFontSize" : settingsScreen.sliderTableFontSize.value,
                     })
     }
 
@@ -52,6 +54,8 @@ Window {
         root.height = settings["WindowHeight"]
         settingsScreen.switchAlwaysOnTop.checked = settings["AlwaysOnTop"]
         settingsScreen.comboBoxThemeStyle.currentIndex = settings["ThemeStyle"]
+        settingsScreen.sliderUIFontSize.value = settings["SliderUIFontSize"]
+        settingsScreen.sliderTableFontSize.value = settings["SliderTableFontSize"]
     }
 
     Dialog {
@@ -67,6 +71,8 @@ Window {
         title: qsTr("Error")
         standardButtons: Dialog.Ok
         closePolicy: Popup.CloseOnEscape
+
+        font.pointSize: settingsScreen.uiFontSize
 
         Label {
             id: txtDialogError
@@ -115,6 +121,7 @@ Window {
 
     TableView {
         id: tableView
+
         columnSpacing: 0
         rowSpacing: 0
 
@@ -205,7 +212,11 @@ Window {
                     horizontalAlignment: TextInput.AlignHCenter
                     verticalAlignment: TextInput.AlignVCenter
 
-                    Component.onCompleted: selectAll()
+                    font.pointSize: settingsScreen.tableFontSize
+
+                    Component.onCompleted: {
+                        selectAll()
+                    }
 
                     TableView.onCommit: {
                         edit = text // short-hand for: TableView.view.model.setData(TableView.view.index(row, column), text, Qt.EditRole)
@@ -238,6 +249,8 @@ Window {
                 id: txtCellInnerText
                 text: m_edit
                 anchors.centerIn: parent
+
+                font.pointSize: settingsScreen.tableFontSize
             }
 
             MouseArea {
@@ -283,6 +296,8 @@ Window {
                 id: txtCellInnerText
                 text: '*'.repeat(m_edit.length)
                 anchors.centerIn: parent
+
+                font.pointSize: settingsScreen.tableFontSize
             }
 
             MouseArea {
@@ -314,6 +329,8 @@ Window {
 
     Menu {
         id: menuExtraButtons
+
+        font.pointSize: settingsScreen.uiFontSize
 
         MenuItem {
             text: qsTr("Save")
@@ -365,6 +382,8 @@ Window {
     Menu {
         id: menuCopy
 
+        font.pointSize: settingsScreen.uiFontSize
+
         MenuItem {
             text: qsTr("Copy Login")
 
@@ -411,6 +430,8 @@ Window {
 
             Layout.alignment: Qt.AlignHCenter
 
+            font.pointSize: settingsScreen.uiFontSize
+
             onClicked: {
                 if(tableView.model !== null) {
                     tableView.model.insertRows(tableView.currentRow + 1, 1)
@@ -421,8 +442,10 @@ Window {
         Dialog {
             id: dialogRemoveSelectedRecord
 
-            x: (root.width - width) / 2
-            y: (root.height - height) / 2
+            anchors.centerIn: parent
+            width: root.width * 0.66
+            height: root.height * 0.66
+
             parent: Overlay.overlay
 
             focus: true
@@ -430,6 +453,8 @@ Window {
             title: qsTr("Delete record")
             standardButtons: Dialog.Yes | Dialog.No
             closePolicy: Popup.CloseOnEscape
+
+            font.pointSize: settingsScreen.uiFontSize
 
             Label {
                 id: txtDialogRemoveSelectedRecordInnerText
@@ -447,6 +472,8 @@ Window {
 
             Layout.alignment: Qt.AlignHCenter
 
+            font.pointSize: settingsScreen.uiFontSize
+
             onClicked: {
                 if(tableView.currentRow !== -1) {
                     dialogRemoveSelectedRecord.open()
@@ -460,6 +487,8 @@ Window {
 
             Layout.alignment: Qt.AlignHCenter
 
+            font.pointSize: settingsScreen.uiFontSize
+
             onClicked: {
                 menuCopy.popup()
             }
@@ -467,9 +496,10 @@ Window {
 
         Dialog {
             id: dialogCloseCurrentDocument
+            anchors.centerIn: parent
+            width: root.width * 0.66
+            height: root.height * 0.66
 
-            x: (root.width - width) / 2
-            y: (root.height - height) / 2
             parent: Overlay.overlay
 
             focus: true
@@ -477,6 +507,8 @@ Window {
             title: qsTr("Save changes reminder")
             standardButtons: Dialog.Yes | Dialog.No
             closePolicy: Popup.CloseOnEscape
+
+            font.pointSize: settingsScreen.uiFontSize
 
             Label {
                 id: txtDialogCloseCurrentDocumentInnerText
@@ -511,6 +543,8 @@ Window {
 
             Layout.alignment: Qt.AlignHCenter
 
+            font.pointSize: settingsScreen.uiFontSize
+
             onClicked: menuExtraButtons.popup()
         }
     }
@@ -518,6 +552,8 @@ Window {
     MainMenuScreen {
         id: screenMainMenu
         anchors.fill: parent
+
+        fontSize: settingsScreen.uiFontSize
 
         Connections {
             target: screenMainMenu
@@ -546,6 +582,8 @@ Window {
     AuthorizationScreen {
         id: authorizationScreen
         anchors.centerIn: parent
+
+        fontSize: settingsScreen.uiFontSize
 
         Connections {
             target: authorizationScreen

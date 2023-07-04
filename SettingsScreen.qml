@@ -7,6 +7,10 @@ Item {
     property alias switchAlwaysOnTop: m_switchAlwaysOnTop
     property alias dialogSettings: m_dialogSettings
     property alias comboBoxThemeStyle: m_comboBoxThemeStyle
+    property alias sliderUIFontSize: m_sliderUIFontSize
+    property alias sliderTableFontSize: m_sliderTableFontSize
+    property alias uiFontSize: m_dialogSettings.m_uiFontSize
+    property alias tableFontSize: m_dialogSettings.m_tableFontSize
 
     Dialog {
         id: m_dialogSettings
@@ -15,28 +19,51 @@ Item {
         modal: true
         focus: true
 
+        font.pointSize: m_uiFontSize
+
         anchors.centerIn: parent
-        width: root.width / 2
-        height: root.height / 2
+        width: root.width * 0.66
+        height: root.height * 0.66
         parent: Overlay.overlay
         closePolicy: Popup.CloseOnEscape
 
         property bool alwaysOnTop: false
         property int themeStyleIndex: -1
 
+        property real m_sliderUIFontSizeCurrentValue: 0
+        property real m_sliderTableFontSizeCurrentValue: 0
+
+        property int m_uiFontSize: 9
+        property int m_tableFontSize: 9
+
         Component.onCompleted: {
             m_dialogSettings.alwaysOnTop = m_switchAlwaysOnTop.checked
             m_dialogSettings.themeStyleIndex = m_comboBoxThemeStyle.currentIndex
+
+            m_dialogSettings.m_sliderUIFontSizeCurrentValue = m_sliderUIFontSize.value
+            m_dialogSettings.m_sliderTableFontSizeCurrentValue = m_sliderTableFontSize.value
+
+            m_dialogSettings.m_uiFontSize = 9 * (1 + m_sliderUIFontSize.value)
+            m_dialogSettings.m_tableFontSize = 9 * (1 + m_sliderTableFontSize.value)
         }
 
         onAccepted: {
             m_dialogSettings.alwaysOnTop = m_switchAlwaysOnTop.checked
             m_dialogSettings.themeStyleIndex = m_comboBoxThemeStyle.currentIndex
+
+            m_dialogSettings.m_sliderUIFontSizeCurrentValue = m_sliderUIFontSize.value
+            m_dialogSettings.m_sliderTableFontSizeCurrentValue = m_sliderTableFontSize.value
+
+            m_dialogSettings.m_uiFontSize = 9 * (1 + m_sliderUIFontSize.value)
+            m_dialogSettings.m_tableFontSize = 9 * (1 + m_sliderTableFontSize.value)
         }
 
         onRejected: {
             m_switchAlwaysOnTop.checked = m_dialogSettings.alwaysOnTop
             m_comboBoxThemeStyle.currentIndex = m_dialogSettings.themeStyleIndex
+
+            m_sliderUIFontSize.value = m_dialogSettings.m_sliderUIFontSizeCurrentValue
+            m_sliderTableFontSize.value = m_dialogSettings.m_sliderTableFontSizeCurrentValue
         }
 
         onAlwaysOnTopChanged: {
@@ -111,6 +138,22 @@ Item {
                         value: Universal.System
                     }
                 }
+            }
+
+            Label {
+                text: qsTr("UI font size")
+            }
+
+            Slider {
+                id: m_sliderUIFontSize
+            }
+
+            Label {
+                text: qsTr("Table font size")
+            }
+
+            Slider {
+                id: m_sliderTableFontSize
             }
         }
     }
