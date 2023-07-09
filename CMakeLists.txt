@@ -23,6 +23,8 @@ qt_add_executable(appSimplePasswordManager
     sessionmanager.cpp
     settingsmanager.h
     settingsmanager.cpp
+    spmsortfilterproxymodel.h
+    spmsortfilterproxymodel.cpp
 )
 
 qt_add_qml_module(appSimplePasswordManager

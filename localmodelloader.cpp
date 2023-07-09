@@ -11,7 +11,8 @@ LocalModelLoader::LocalModelLoader(QObject *parent)
 
 void LocalModelLoader::loadWithCredentials(QObject* parent, QObject* currentModel, QString username, QString password, QString filename)
 {
-    QString path = QUrl(filename).toString(QUrl::PreferLocalFile); // workaround for windows not working with file:/// scheme from QML dialogs
+    // workaround for windows not working with file:/// scheme from QML dialogs
+    QString path = QUrl(filename).toString(QUrl::PreferLocalFile);
 
     QFile inputFile(path);
     if (!inputFile.open(QIODevice::ReadOnly)) {
@@ -25,14 +26,14 @@ void LocalModelLoader::loadWithCredentials(QObject* parent, QObject* currentMode
     QByteArray encryptedCompressedInputData = inputFile.readAll();
 
     inputFile.close();
-
     // authorization - username/password
-    // encryption of qCompressed data
+    // decryption of qCompressed data
     // Sha256 hash - 32 bytes length; Md5 hash - 16 bytes length
     QByteArray hashedKey = QCryptographicHash::hash(username.toLocal8Bit(), QCryptographicHash::Sha256);
     QByteArray hashedIV = QCryptographicHash::hash(password.toLocal8Bit(), QCryptographicHash::Md5);
 
-    QByteArray decoded = QAESEncryption::Decrypt(QAESEncryption::AES_256, QAESEncryption::OFB, encryptedCompressedInputData, hashedKey, hashedIV);
+    QByteArray decoded = QAESEncryption::Decrypt(
+        QAESEncryption::AES_256, QAESEncryption::OFB, encryptedCompressedInputData, hashedKey, hashedIV);
     // optional; depends on MODE (ECB, CBC, CFB ??) and blocksize~key~iv
     // QByteArray decodedWithoutPadding = QAESEncryption::RemovePadding(decoded);
     // shouldn't be needed with fixed hash length
@@ -49,33 +50,44 @@ void LocalModelLoader::loadWithCredentials(QObject* parent, QObject* currentMode
 
     QDataStream inputDataStream(&decompressedInputData, QIODevice::ReadOnly);
     // handle model and memory
-    SPMModel* model = new SPMModel(parent);
+    SPMSortFilterProxyModel* proxyModel = new SPMSortFilterProxyModel(parent);
+    SPMModel* sourceModel = new SPMModel(proxyModel);
 
-    parent->setProperty("model", QVariant::fromValue(model));
+    proxyModel->setSourceModel(sourceModel);
 
     delete currentModel;
     currentModel = nullptr;
 
-    inputDataStream >> *model;
+    parent->setProperty("model", QVariant::fromValue(proxyModel));
+
+    inputDataStream >> *sourceModel;
 
     emit modelLoaded();
 }
 
 void LocalModelLoader::create(QObject *parent, QObject *currentModel)
 {
-    SPMModel* model = new SPMModel(parent); // tableView is parent but never destroyed yet, thats why handling model/children manually
+    // SPMModel* model = new SPMModel(parent); // tableView is parent but never destroyed yet, thats why handling model/children manually
+    // SPMModel* model = new SPMModel(parent); // spmSortFilterProxyModel is parent but never destroyed yet, thats why handling model/children manually
 
-    parent->setProperty("model", QVariant::fromValue(model));
+    SPMSortFilterProxyModel* proxyModel = new SPMSortFilterProxyModel(parent);
+    SPMModel* sourceModel = new SPMModel(proxyModel);
+
+    proxyModel->setSourceModel(sourceModel);
 
     delete currentModel;
     currentModel = nullptr;
 
+    parent->setProperty("model", QVariant::fromValue(proxyModel));
+
     emit modelCreated();
 }
 
-void LocalModelLoader::saveWithCredentials(SPMModel *model, QString username, QString password, QString filename)
+void LocalModelLoader::saveWithCredentials(
+    SPMSortFilterProxyModel* proxyModel, QString username, QString password, QString filename)
 {
-    QString path = QUrl(filename).toString(QUrl::PreferLocalFile); // workaround for windows not working with file:/// scheme from QML dialogs
+    // workaround for windows not working with file:/// scheme from QML dialogs
+    QString path = QUrl(filename).toString(QUrl::PreferLocalFile);
 
     QFile outputFile(path);
     if (!outputFile.open(QIODevice::WriteOnly)) {
@@ -88,7 +100,7 @@ void LocalModelLoader::saveWithCredentials(SPMModel *model, QString username, QS
 
     QByteArray outputData;
     QDataStream outputStream(&outputData, QIODevice::WriteOnly);
-    outputStream << *model;
+    outputStream << *((SPMModel*)proxyModel->sourceModel());
 
     QByteArray compressed = qCompress(outputData, 9);
     // authorization - username/password
@@ -122,10 +134,11 @@ void LocalModelLoader::saveWithCredentials(SPMModel *model, QString username, QS
 
 void LocalModelLoader::unloadModel(QObject *parent, QObject *currentModel)
 {
-    parent->setProperty("model", QVariant::fromValue(nullptr)); // tableView is parent but never destroyed yet, thats why handling model/children manually
-
+    // parent->setProperty("model", QVariant::fromValue(nullptr)); // tableView is parent but never destroyed yet, thats why handling model/children manually
     delete currentModel;
     currentModel = nullptr;
+
+    parent->setProperty("model", QVariant::fromValue(nullptr)); // spmSortFilterProxyModel is parent but never destroyed yet, thats why handling model/children manually
 
     emit modelDestroyed();
 }

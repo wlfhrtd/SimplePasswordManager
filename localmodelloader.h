@@ -6,6 +6,7 @@
 #include <QUrl>
 
 #include "spmmodel.h"
+#include "spmsortfilterproxymodel.h"
 // Qt-AES
 #include <QCryptographicHash>
 #include "qaesencryption.h"
@@ -30,7 +31,7 @@ public:
 public slots:
     Q_INVOKABLE void loadWithCredentials(QObject* parent, QObject* currentModel, QString username, QString password, QString filename);
     Q_INVOKABLE void create(QObject* parent, QObject* currentModel);
-    Q_INVOKABLE void saveWithCredentials(SPMModel* model, QString username, QString password, QString filename);
+    Q_INVOKABLE void saveWithCredentials(SPMSortFilterProxyModel* proxyModel, QString username, QString password, QString filename);
     Q_INVOKABLE void unloadModel(QObject *parent, QObject *currentModel);
 
 signals:

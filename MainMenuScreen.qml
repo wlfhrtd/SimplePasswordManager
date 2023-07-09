@@ -53,8 +53,6 @@ Item {
 
                 text: qsTr("Open")
 
-                // font.pixelSize: 24
-
                 onClicked: {
                     buttonOpenLocalFileClicked()
 

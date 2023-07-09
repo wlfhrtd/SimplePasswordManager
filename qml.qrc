@@ -3,5 +3,6 @@
         <file>AuthorizationScreen.qml</file>
         <file>MainMenuScreen.qml</file>
         <file>SettingsScreen.qml</file>
+        <file>ErrorScreen.qml</file>
     </qresource>
 </RCC>

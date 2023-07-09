@@ -5,7 +5,6 @@ import QtQuick.Layouts
 import QtQuick.Dialogs
 import QtQuick.Controls.Universal
 
-import com.application.spmmodel 1.0
 import com.application.qclipboardqtquickwrapper 1.0
 import com.application.localmodelloader 1.0
 import com.application.sessionmanager 1.0
@@ -27,6 +26,7 @@ Window {
     Universal.accent: Universal.Cobalt
 
     property bool m_new_document: false
+    property var m_current_model: null
 
     function saveAppSettings() {
         settingsManager.saveSettings(
@@ -44,6 +44,20 @@ Window {
                     })
     }
 
+    function onSPMSortFilterProxyModelBeginSorting() {
+        root.m_current_model = tableView.model
+        tableView.model = null
+        console.log("SORTING STARTED!")
+        horizontalHeader.visible = false
+    }
+
+    function onSPMSortFilterProxyModelEndSorting() {
+        tableView.model = root.m_current_model
+        root.m_current_model = null
+        console.log("SORTING ENDED!")
+        horizontalHeader.visible = true
+    }
+
     Component.onCompleted: {
         Qt.application.aboutToQuit.connect(saveAppSettings)
 
@@ -58,53 +72,155 @@ Window {
         settingsScreen.sliderTableFontSize.value = settings["SliderTableFontSize"]
     }
 
-    Dialog {
-        id: dialogError
+    Component {
+        id: delegateNonInteractiveHorizontalHeaderDelegate
 
-        anchors.centerIn: parent
-        width: root.width / 2
-        height: root.height / 2
-        parent: Overlay.overlay
+        Rectangle {
+            // has access to: display, edit, text, selected, current
+            implicitWidth: root.width / tableView.columns
+            implicitHeight: 50
 
-        focus: true
-        modal: true
-        title: qsTr("Error")
-        standardButtons: Dialog.Ok
-        closePolicy: Popup.CloseOnEscape
+            border.color: "green"
+            border.width: 1
+            color: Universal.background
 
-        font.pointSize: settingsScreen.uiFontSize
+            Label {
+                text: m_display
+                anchors.centerIn: parent
 
-        Label {
-            id: txtDialogError
-            anchors.fill: parent
-            verticalAlignment: Text.AlignVCenter
+                font.pointSize: settingsScreen.uiFontSize
 
-            wrapMode: Text.WrapAnywhere
-            text: ""
+                visible: true
+            }
         }
     }
 
-    LocalModelLoader {
-        id: localModelLoader
+    Component {
+        id: delegateInteractiveHorizontalHeaderDelegate
 
-        onModelCreated: {
-            screenMainMenu.visible = false
-            rowBottomButtons.visible = true
-        }
+        Rectangle {
+            // has access to: display, edit, text, selected, current
+            implicitWidth: root.width / tableView.columns
+            implicitHeight: 50
 
-        onModelLoaded: {
-            screenMainMenu.visible = false
-            rowBottomButtons.visible = true
-        }
+            border.color: "green"
+            border.width: 1
+            color: Universal.background
 
-        onModelDestroyed: {
-            screenMainMenu.visible = true
-            rowBottomButtons.visible = false
-        }
+            RowLayout {
+                id: rowHorizontalHeader
+                visible: true
+                anchors.fill: parent
+                anchors.leftMargin: 20
+                spacing: 20
 
-        onErrorOccurred: {
-            txtDialogError.text = localModelLoader.errorMessage
-            dialogError.open()
+                Label {
+                    id: lblHeaderCell
+                    text: m_display // horizontalHeader.m_current_filter_strings[m_index] === "" ? horizontalHeader.m_current_column_names[m_index] : horizontalHeader.m_current_column_names[m_index] + ": " + horizontalHeader.m_current_filter_strings[m_index]
+                    // anchors.centerIn: parent
+
+                    horizontalAlignment: TextInput.AlignHCenter
+                    verticalAlignment: TextInput.AlignVCenter
+
+                    font.pointSize: settingsScreen.uiFontSize
+
+                    // visible: true
+                }
+
+                Label {
+                    id: lblSortOrder
+                    text: horizontalHeader.m_current_sort_orders[m_index] === -1
+                          ? ""
+                          : horizontalHeader.m_current_sort_orders[m_index] === 0
+                            ? "▲"
+                            : "▼"
+                    font.pointSize: settingsScreen.uiFontSize
+                }
+            }
+
+            TextField {
+                id: txtHeaderCell
+                anchors.fill: parent
+                text: m_text // horizontalHeader.m_current_filter_strings[m_index]
+                horizontalAlignment: TextInput.AlignHCenter
+                verticalAlignment: TextInput.AlignVCenter
+
+                font.pointSize: settingsScreen.tableFontSize
+
+                visible: false
+
+                onAccepted: {
+                    console.log("m_index: ", m_index)
+                    console.log("txtHeaderCell.text: ", txtHeaderCell.text)
+
+                    horizontalHeader.m_current_filter_strings[m_index] = txtHeaderCell.text
+                    console.log("m_current_filter_strings:", horizontalHeader.m_current_filter_strings)
+
+                    tableView.model.setFilterRegularExpression(horizontalHeader.m_current_filter_strings[m_index])
+                    tableView.model.filterKeyColumn = m_index
+
+                    txtHeaderCell.visible = false
+
+                    //lblHeaderCell.text = horizontalHeader.m_current_filter_strings[index] === "" ? horizontalHeader.m_current_column_names[index] : horizontalHeader.m_current_column_names[index] + ": " + horizontalHeader.m_current_filter_strings[index]
+                    // lblHeaderCell.visible = true
+                    rowHorizontalHeader.visible = true
+                    // lblHeaderCell.forceActiveFocus()
+
+                    console.log("lblHeaderCell.text: ", lblHeaderCell.text)
+                }
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                acceptedButtons: Qt.LeftButton | Qt.RightButton
+
+                onClicked: mouse => {
+                               console.log("m_index: ", m_index)
+                               // console.log("m_current_order: ", m_current_order)
+                               // console.log("horizontalHeader.m_current_sort_orders[m_index]: ", horizontalHeader.m_current_sort_orders[m_index])
+                               if(mouse.button === Qt.LeftButton) {
+                                   switch(horizontalHeader.m_current_sort_orders[m_index]) {
+                                       case -1: {
+                                           // m_current_order = Qt.AscendingOrder // 0
+                                           // horizontalHeader.current_orders[m_index] = Qt.AscendingOrder // 0
+                                           horizontalHeader.m_current_sort_orders[m_index] = Qt.AscendingOrder // 0
+                                           tableView.model.sort(m_index, horizontalHeader.m_current_sort_orders[m_index])
+                                           console.log("horizontalHeader.m_current_sort_orders[m_index] NEW VALUE: ", horizontalHeader.m_current_sort_orders[m_index])
+                                           // lblSortOrder.text = "▲"
+                                           return
+                                       }
+                                       case 0: {
+                                           // m_current_order = Qt.DescendingOrder // 1
+                                           // horizontalHeader.current_orders[m_index] = Qt.DescendingOrder // 1
+                                           horizontalHeader.m_current_sort_orders[m_index] = Qt.DescendingOrder // 1
+                                           tableView.model.sort(m_index, horizontalHeader.m_current_sort_orders[m_index])
+                                           console.log("horizontalHeader.m_current_sort_orders[m_index] NEW VALUE: ", horizontalHeader.m_current_sort_orders[m_index])
+                                           // lblSortOrder.text = "▼"
+                                           return
+                                       }
+                                       case 1: {
+                                           // m_current_order = -1
+                                           // horizontalHeader.current_orders[m_index] = -1
+                                           horizontalHeader.m_current_sort_orders[m_index] = -1
+                                           tableView.model.sort(horizontalHeader.m_current_sort_orders[m_index])
+                                           console.log("horizontalHeader.m_current_sort_orders[m_index] NEW VALUE: ", horizontalHeader.m_current_sort_orders[m_index])
+                                           // lblSortOrder.text = ""
+                                           return
+                                       }
+                                   }
+                               }
+
+                               if(mouse.button === Qt.RightButton) {
+                                   // lblHeaderCell.visible = false
+                                   rowHorizontalHeader.visible = false
+
+                                   txtHeaderCell.visible = true
+                                   txtHeaderCell.forceActiveFocus()
+
+                                   return
+                               }
+                           }
+            }
         }
     }
 
@@ -117,6 +233,53 @@ Window {
         anchors.right: parent.right
 
         boundsBehavior: Flickable.StopAtBounds
+
+        property var m_current_sort_orders: [-1, -1, -1]
+        property var m_current_filter_strings: ["", "", ""]
+        property var m_current_column_names: ["Instance", "Login", "Password"]
+
+        delegate: Component {
+            Loader {
+                required property bool selected
+                required property bool current
+                property var m_edit: edit
+                property var m_display: horizontalHeader.m_current_filter_strings[index] === "" ? horizontalHeader.m_current_column_names[index] : horizontalHeader.m_current_column_names[index] + ": " + horizontalHeader.m_current_filter_strings[index]
+                property var m_text: horizontalHeader.m_current_filter_strings[index]
+                // threshold index to apply delegateNonInteractiveHorizontalHeaderDelegate to last column "Password"
+                // and delegateInteractiveHorizontalHeaderDelegate to all other columns (to left from "Password" column)
+                property int thresholdIndex: tableView.columns - 1
+                property int m_index: index
+                property int m_row: row
+                property int m_column: column
+                property int m_current_order: -1 // horizontalHeader.m_current_sort_orders[m_index]
+
+                sourceComponent: {
+                    if(tableView.model !== null) {
+                        /*
+                        index increases towards columns like
+                        0 1 2 3
+                        condition declared in "if" below excludes last column to apply another delegate
+                        */
+                        if(index < thresholdIndex) {
+                            return delegateInteractiveHorizontalHeaderDelegate
+                        }
+
+                        return delegateNonInteractiveHorizontalHeaderDelegate
+                    }
+
+                    return null
+                }
+
+                onLoaded: {
+                    // m_display = horizontalHeader.m_current_filter_strings[index] === "" ? display : display + ": " + horizontalHeader.m_current_filter_strings[index]
+                    // console.log("m_index: ", m_index)
+                    // console.log("m_current_order: ", m_current_order)
+                    // console.log("horizontalHeader.m_current_sort_orders NOW: ", horizontalHeader.m_current_sort_orders)
+                    // horizontalHeader.m_current_sort_orders[m_index] = m_current_order
+                    // console.log("horizontalHeader.m_current_sort_orders AFTER: ", horizontalHeader.m_current_sort_orders)
+                }
+            }
+        }
     }
 
     TableView {
@@ -165,6 +328,7 @@ Window {
         }
 
         model: null
+        // model: spmSortFilterProxyModel
 
         selectionModel: ItemSelectionModel {
             model: tableView.model
@@ -607,6 +771,36 @@ Window {
         }
     }
 
+    LocalModelLoader {
+        id: localModelLoader
+
+        onModelCreated: {
+            screenMainMenu.visible = false
+            rowBottomButtons.visible = true
+
+            tableView.model.beginSorting.connect(onSPMSortFilterProxyModelBeginSorting)
+            tableView.model.endSorting.connect(onSPMSortFilterProxyModelEndSorting)
+        }
+
+        onModelLoaded: {
+            screenMainMenu.visible = false
+            rowBottomButtons.visible = true
+
+            tableView.model.beginSorting.connect(onSPMSortFilterProxyModelBeginSorting)
+            tableView.model.endSorting.connect(onSPMSortFilterProxyModelEndSorting)
+        }
+
+        onModelDestroyed: {
+            screenMainMenu.visible = true
+            rowBottomButtons.visible = false
+        }
+
+        onErrorOccurred: {
+            errorScreen.dialogText = localModelLoader.errorMessage
+            errorScreen.dialog.open()
+        }
+    }
+
     QClipboardQtQuickWrapper {
         id: clipboard
     }
@@ -617,6 +811,12 @@ Window {
 
     SettingsManager {
         id: settingsManager
+    }
+
+    ErrorScreen {
+        id: errorScreen
+
+        fontSize: settingsScreen.uiFontSize
     }
 
     SettingsScreen {
