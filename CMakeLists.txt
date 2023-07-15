@@ -25,6 +25,10 @@ qt_add_executable(appSimplePasswordManager
     settingsmanager.cpp
     spmsortfilterproxymodel.h
     spmsortfilterproxymodel.cpp
+    columnssorter.h
+    columnssorter.cpp
+    alphanumcomparer.h
+    alphanumcomparer.cpp
 )
 
 qt_add_qml_module(appSimplePasswordManager

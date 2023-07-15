@@ -41,6 +41,7 @@ public:
 
         return out;
     }
+
     friend QDataStream& operator >> (QDataStream& in, SPMModel& obj)
     {
         in >> obj.m_table;

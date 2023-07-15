@@ -47,14 +47,12 @@ Window {
     function onSPMSortFilterProxyModelBeginSorting() {
         root.m_current_model = tableView.model
         tableView.model = null
-        console.log("SORTING STARTED!")
         horizontalHeader.visible = false
     }
 
     function onSPMSortFilterProxyModelEndSorting() {
         tableView.model = root.m_current_model
         root.m_current_model = null
-        console.log("SORTING ENDED!")
         horizontalHeader.visible = true
     }
 
@@ -116,15 +114,12 @@ Window {
 
                 Label {
                     id: lblHeaderCell
-                    text: m_display // horizontalHeader.m_current_filter_strings[m_index] === "" ? horizontalHeader.m_current_column_names[m_index] : horizontalHeader.m_current_column_names[m_index] + ": " + horizontalHeader.m_current_filter_strings[m_index]
-                    // anchors.centerIn: parent
+                    text: m_display
 
                     horizontalAlignment: TextInput.AlignHCenter
                     verticalAlignment: TextInput.AlignVCenter
 
                     font.pointSize: settingsScreen.uiFontSize
-
-                    // visible: true
                 }
 
                 Label {
@@ -141,7 +136,7 @@ Window {
             TextField {
                 id: txtHeaderCell
                 anchors.fill: parent
-                text: m_text // horizontalHeader.m_current_filter_strings[m_index]
+                text: m_text
                 horizontalAlignment: TextInput.AlignHCenter
                 verticalAlignment: TextInput.AlignVCenter
 
@@ -150,23 +145,15 @@ Window {
                 visible: false
 
                 onAccepted: {
-                    console.log("m_index: ", m_index)
-                    console.log("txtHeaderCell.text: ", txtHeaderCell.text)
-
                     horizontalHeader.m_current_filter_strings[m_index] = txtHeaderCell.text
-                    console.log("m_current_filter_strings:", horizontalHeader.m_current_filter_strings)
 
-                    tableView.model.setFilterRegularExpression(horizontalHeader.m_current_filter_strings[m_index])
-                    tableView.model.filterKeyColumn = m_index
+                    for(let i = 0; i < horizontalHeader.m_current_filter_strings.length - 1; i++) {
+                        tableView.model.setMultiFilterRegularExpression(i, horizontalHeader.m_current_filter_strings[i])
+                    }
 
                     txtHeaderCell.visible = false
 
-                    //lblHeaderCell.text = horizontalHeader.m_current_filter_strings[index] === "" ? horizontalHeader.m_current_column_names[index] : horizontalHeader.m_current_column_names[index] + ": " + horizontalHeader.m_current_filter_strings[index]
-                    // lblHeaderCell.visible = true
                     rowHorizontalHeader.visible = true
-                    // lblHeaderCell.forceActiveFocus()
-
-                    console.log("lblHeaderCell.text: ", lblHeaderCell.text)
                 }
             }
 
@@ -175,43 +162,29 @@ Window {
                 acceptedButtons: Qt.LeftButton | Qt.RightButton
 
                 onClicked: mouse => {
-                               console.log("m_index: ", m_index)
-                               // console.log("m_current_order: ", m_current_order)
-                               // console.log("horizontalHeader.m_current_sort_orders[m_index]: ", horizontalHeader.m_current_sort_orders[m_index])
                                if(mouse.button === Qt.LeftButton) {
                                    switch(horizontalHeader.m_current_sort_orders[m_index]) {
                                        case -1: {
-                                           // m_current_order = Qt.AscendingOrder // 0
-                                           // horizontalHeader.current_orders[m_index] = Qt.AscendingOrder // 0
                                            horizontalHeader.m_current_sort_orders[m_index] = Qt.AscendingOrder // 0
-                                           tableView.model.sort(m_index, horizontalHeader.m_current_sort_orders[m_index])
-                                           console.log("horizontalHeader.m_current_sort_orders[m_index] NEW VALUE: ", horizontalHeader.m_current_sort_orders[m_index])
-                                           // lblSortOrder.text = "▲"
-                                           return
+
+                                           break
                                        }
                                        case 0: {
-                                           // m_current_order = Qt.DescendingOrder // 1
-                                           // horizontalHeader.current_orders[m_index] = Qt.DescendingOrder // 1
                                            horizontalHeader.m_current_sort_orders[m_index] = Qt.DescendingOrder // 1
-                                           tableView.model.sort(m_index, horizontalHeader.m_current_sort_orders[m_index])
-                                           console.log("horizontalHeader.m_current_sort_orders[m_index] NEW VALUE: ", horizontalHeader.m_current_sort_orders[m_index])
-                                           // lblSortOrder.text = "▼"
-                                           return
+
+                                           break
                                        }
                                        case 1: {
-                                           // m_current_order = -1
-                                           // horizontalHeader.current_orders[m_index] = -1
                                            horizontalHeader.m_current_sort_orders[m_index] = -1
-                                           tableView.model.sort(horizontalHeader.m_current_sort_orders[m_index])
-                                           console.log("horizontalHeader.m_current_sort_orders[m_index] NEW VALUE: ", horizontalHeader.m_current_sort_orders[m_index])
-                                           // lblSortOrder.text = ""
-                                           return
+
+                                           break
                                        }
                                    }
+
+                                   tableView.model.sortColumn(m_index)
                                }
 
                                if(mouse.button === Qt.RightButton) {
-                                   // lblHeaderCell.visible = false
                                    rowHorizontalHeader.visible = false
 
                                    txtHeaderCell.visible = true
@@ -243,7 +216,9 @@ Window {
                 required property bool selected
                 required property bool current
                 property var m_edit: edit
-                property var m_display: horizontalHeader.m_current_filter_strings[index] === "" ? horizontalHeader.m_current_column_names[index] : horizontalHeader.m_current_column_names[index] + ": " + horizontalHeader.m_current_filter_strings[index]
+                property var m_display: horizontalHeader.m_current_filter_strings[index] === ""
+                                        ? horizontalHeader.m_current_column_names[index]
+                                        : horizontalHeader.m_current_column_names[index] + ": " + horizontalHeader.m_current_filter_strings[index]
                 property var m_text: horizontalHeader.m_current_filter_strings[index]
                 // threshold index to apply delegateNonInteractiveHorizontalHeaderDelegate to last column "Password"
                 // and delegateInteractiveHorizontalHeaderDelegate to all other columns (to left from "Password" column)
@@ -251,7 +226,7 @@ Window {
                 property int m_index: index
                 property int m_row: row
                 property int m_column: column
-                property int m_current_order: -1 // horizontalHeader.m_current_sort_orders[m_index]
+                property int m_current_order: -1
 
                 sourceComponent: {
                     if(tableView.model !== null) {
@@ -268,15 +243,6 @@ Window {
                     }
 
                     return null
-                }
-
-                onLoaded: {
-                    // m_display = horizontalHeader.m_current_filter_strings[index] === "" ? display : display + ": " + horizontalHeader.m_current_filter_strings[index]
-                    // console.log("m_index: ", m_index)
-                    // console.log("m_current_order: ", m_current_order)
-                    // console.log("horizontalHeader.m_current_sort_orders NOW: ", horizontalHeader.m_current_sort_orders)
-                    // horizontalHeader.m_current_sort_orders[m_index] = m_current_order
-                    // console.log("horizontalHeader.m_current_sort_orders AFTER: ", horizontalHeader.m_current_sort_orders)
                 }
             }
         }
@@ -328,7 +294,6 @@ Window {
         }
 
         model: null
-        // model: spmSortFilterProxyModel
 
         selectionModel: ItemSelectionModel {
             model: tableView.model
@@ -414,6 +379,14 @@ Window {
                 text: m_edit
                 anchors.centerIn: parent
 
+                width: parent.width
+                height: parent.height
+                minimumPointSize: 10
+                fontSizeMode: Text.Fit
+                horizontalAlignment: TextInput.AlignHCenter
+                verticalAlignment: TextInput.AlignVCenter
+                wrapMode: Text.WordWrap
+
                 font.pointSize: settingsScreen.tableFontSize
             }
 
@@ -460,6 +433,14 @@ Window {
                 id: txtCellInnerText
                 text: '*'.repeat(m_edit.length)
                 anchors.centerIn: parent
+
+                width: parent.width
+                height: parent.height
+                minimumPointSize: 10
+                fontSizeMode: Text.Fit
+                horizontalAlignment: TextInput.AlignHCenter
+                verticalAlignment: TextInput.AlignVCenter
+                wrapMode: Text.WordWrap
 
                 font.pointSize: settingsScreen.tableFontSize
             }

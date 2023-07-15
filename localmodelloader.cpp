@@ -9,7 +9,8 @@ LocalModelLoader::LocalModelLoader(QObject *parent)
 }
 
 
-void LocalModelLoader::loadWithCredentials(QObject* parent, QObject* currentModel, QString username, QString password, QString filename)
+void LocalModelLoader::loadWithCredentials(
+    QObject* parent, QObject* currentModel, QString username, QString password, QString filename)
 {
     // workaround for windows not working with file:/// scheme from QML dialogs
     QString path = QUrl(filename).toString(QUrl::PreferLocalFile);
@@ -50,7 +51,7 @@ void LocalModelLoader::loadWithCredentials(QObject* parent, QObject* currentMode
 
     QDataStream inputDataStream(&decompressedInputData, QIODevice::ReadOnly);
     // handle model and memory
-    SPMSortFilterProxyModel* proxyModel = new SPMSortFilterProxyModel(parent);
+    SPMSortFilterProxyModel* proxyModel = new SPMSortFilterProxyModel(true, parent);
     SPMModel* sourceModel = new SPMModel(proxyModel);
 
     proxyModel->setSourceModel(sourceModel);
@@ -67,10 +68,8 @@ void LocalModelLoader::loadWithCredentials(QObject* parent, QObject* currentMode
 
 void LocalModelLoader::create(QObject *parent, QObject *currentModel)
 {
-    // SPMModel* model = new SPMModel(parent); // tableView is parent but never destroyed yet, thats why handling model/children manually
-    // SPMModel* model = new SPMModel(parent); // spmSortFilterProxyModel is parent but never destroyed yet, thats why handling model/children manually
-
-    SPMSortFilterProxyModel* proxyModel = new SPMSortFilterProxyModel(parent);
+    // manual memory management instead of destroying parent obj
+    SPMSortFilterProxyModel* proxyModel = new SPMSortFilterProxyModel(true, parent);
     SPMModel* sourceModel = new SPMModel(proxyModel);
 
     proxyModel->setSourceModel(sourceModel);
@@ -91,7 +90,8 @@ void LocalModelLoader::saveWithCredentials(
 
     QFile outputFile(path);
     if (!outputFile.open(QIODevice::WriteOnly)) {
-        m_error_message = QString::asprintf("file:///%s:%i: %s", __FILE__, __LINE__, "UNABLE TO OPEN QFILE WITH WRITEONLY FLAG");
+        m_error_message = QString::asprintf(
+            "file:///%s:%i: %s", __FILE__, __LINE__, "UNABLE TO OPEN QFILE WITH WRITEONLY FLAG");
 
         emit errorOccurred();
 
@@ -134,11 +134,11 @@ void LocalModelLoader::saveWithCredentials(
 
 void LocalModelLoader::unloadModel(QObject *parent, QObject *currentModel)
 {
-    // parent->setProperty("model", QVariant::fromValue(nullptr)); // tableView is parent but never destroyed yet, thats why handling model/children manually
+    // manual memory management instead of destroying parent obj
     delete currentModel;
     currentModel = nullptr;
 
-    parent->setProperty("model", QVariant::fromValue(nullptr)); // spmSortFilterProxyModel is parent but never destroyed yet, thats why handling model/children manually
+    parent->setProperty("model", QVariant::fromValue(nullptr));
 
     emit modelDestroyed();
 }

@@ -4,7 +4,7 @@
 SPMModel::SPMModel(QObject *parent)
     : QAbstractTableModel{parent}
 {
-    // connect(this, &SPMModel::destroyed, this, [=](){ qDebug() << "destroyed!"; });
+
 }
 
 

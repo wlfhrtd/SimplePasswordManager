@@ -23,7 +23,7 @@ Item {
 
         anchors.centerIn: parent
         width: root.width * 0.66
-        height: root.height * 0.66
+        height: root.height * 0.8
         parent: Overlay.overlay
         closePolicy: Popup.CloseOnEscape
 
