@@ -10,7 +10,7 @@ import com.application.localmodelloader 1.0
 import com.application.sessionmanager 1.0
 import com.application.settingsmanager 1.0
 
-import "qrc:///"
+import "qrc:/"
 
 
 Window {
@@ -22,11 +22,11 @@ Window {
     visible: true
     title: "SimplePasswordManager"
 
-    Universal.theme: Universal.System // Universal.Light // Universal.Dark
+    Universal.theme: Universal.System // Universal.Light // Universal.Dark // 2 // 0 // 1
     Universal.accent: Universal.Cobalt
 
     property bool m_new_document: false
-    property var m_current_model: null
+    property var m_current_model: null // temporarly holds tableView.model(proxy) while sorting
 
     function saveAppSettings() {
         settingsManager.saveSettings(
@@ -38,6 +38,7 @@ Window {
                         "WindowWidth" : root.width,
                         "WindowHeight" : root.height,
                         "AlwaysOnTop" : settingsScreen.switchAlwaysOnTop.checked ? 1 : 0, // win32 registry has no boolean type; |0 or ^0 should be slower
+                        "WindowFixedSize" : settingsScreen.switchWindowFixedSize.checked ? 1 : 0, // win32 registry has no boolean type; |0 or ^0 should be slower
                         "ThemeStyle" : settingsScreen.comboBoxThemeStyle.currentIndex,
                         "SliderUIFontSize" : settingsScreen.sliderUIFontSize.value,
                         "SliderTableFontSize" : settingsScreen.sliderTableFontSize.value,
@@ -60,11 +61,13 @@ Window {
         Qt.application.aboutToQuit.connect(saveAppSettings)
 
         let settings = settingsManager.loadSettings(Qt.application.name, "Settings")
+
         root.x = settings["WindowX"]
         root.y = settings["WindowY"]
         root.width = settings["WindowWidth"]
         root.height = settings["WindowHeight"]
         settingsScreen.switchAlwaysOnTop.checked = settings["AlwaysOnTop"]
+        settingsScreen.switchWindowFixedSize.checked = settings["WindowFixedSize"]
         settingsScreen.comboBoxThemeStyle.currentIndex = settings["ThemeStyle"]
         settingsScreen.sliderUIFontSize.value = settings["SliderUIFontSize"]
         settingsScreen.sliderTableFontSize.value = settings["SliderTableFontSize"]

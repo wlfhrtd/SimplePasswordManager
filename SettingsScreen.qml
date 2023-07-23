@@ -5,6 +5,7 @@ import QtQuick.Controls.Universal
 
 Item {
     property alias switchAlwaysOnTop: m_switchAlwaysOnTop
+    property alias switchWindowFixedSize: m_switchWindowFixedSize
     property alias dialogSettings: m_dialogSettings
     property alias comboBoxThemeStyle: m_comboBoxThemeStyle
     property alias sliderUIFontSize: m_sliderUIFontSize
@@ -28,6 +29,8 @@ Item {
         closePolicy: Popup.CloseOnEscape
 
         property bool alwaysOnTop: false
+        property bool windowFixedSize: false
+
         property int themeStyleIndex: -1
 
         property real m_sliderUIFontSizeCurrentValue: 0
@@ -38,6 +41,8 @@ Item {
 
         Component.onCompleted: {
             m_dialogSettings.alwaysOnTop = m_switchAlwaysOnTop.checked
+            m_dialogSettings.windowFixedSize = m_switchWindowFixedSize.checked
+
             m_dialogSettings.themeStyleIndex = m_comboBoxThemeStyle.currentIndex
 
             m_dialogSettings.m_sliderUIFontSizeCurrentValue = m_sliderUIFontSize.value
@@ -49,6 +54,8 @@ Item {
 
         onAccepted: {
             m_dialogSettings.alwaysOnTop = m_switchAlwaysOnTop.checked
+            m_dialogSettings.windowFixedSize = m_switchWindowFixedSize.checked
+
             m_dialogSettings.themeStyleIndex = m_comboBoxThemeStyle.currentIndex
 
             m_dialogSettings.m_sliderUIFontSizeCurrentValue = m_sliderUIFontSize.value
@@ -60,6 +67,8 @@ Item {
 
         onRejected: {
             m_switchAlwaysOnTop.checked = m_dialogSettings.alwaysOnTop
+            m_switchWindowFixedSize.checked = m_dialogSettings.windowFixedSize
+
             m_comboBoxThemeStyle.currentIndex = m_dialogSettings.themeStyleIndex
 
             m_sliderUIFontSize.value = m_dialogSettings.m_sliderUIFontSizeCurrentValue
@@ -76,6 +85,16 @@ Item {
             root.flags |= Qt.WindowStaysOnTopHint
         }
 
+        onWindowFixedSizeChanged: {
+            if(!m_dialogSettings.windowFixedSize) {
+                root.flags ^= Qt.MSWindowsFixedSizeDialogHint
+
+                return
+            }
+
+            root.flags |= Qt.MSWindowsFixedSizeDialogHint
+        }
+
         onThemeStyleIndexChanged: {
             root.Universal.theme = m_comboBoxThemeStyle.valueAt(m_dialogSettings.themeStyleIndex)
         }
@@ -84,6 +103,11 @@ Item {
             Switch {
                 id: m_switchAlwaysOnTop
                 text: qsTr("Always On Top")
+            }
+
+            Switch {
+                id: m_switchWindowFixedSize
+                text: qsTr("Window fixed size")
             }
 
             RowLayout {
