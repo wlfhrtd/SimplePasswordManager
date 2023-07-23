@@ -23,8 +23,8 @@ Item {
         font.pointSize: m_uiFontSize
 
         anchors.centerIn: parent
-        width: root.width * 0.66
-        height: root.height * 0.8
+        width: root.width * 0.75
+        height: root.height * 0.95
         parent: Overlay.overlay
         closePolicy: Popup.CloseOnEscape
 
