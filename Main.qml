@@ -57,8 +57,13 @@ Window {
         horizontalHeader.visible = true
     }
 
+    function onAppAboutToQuit(close) {
+        close.accepted = false
+        screenCloseApp.dialog.open()
+    }
+
     Component.onCompleted: {
-        Qt.application.aboutToQuit.connect(saveAppSettings)
+        root.closing.connect(root.onAppAboutToQuit)
 
         let settings = settingsManager.loadSettings(Qt.application.name, "Settings")
 
@@ -403,7 +408,7 @@ Window {
                                        tableView.index(m_row, m_column),
                                        ItemSelectionModel.Rows | ItemSelectionModel.ToggleCurrent)
 
-                                   menuCopy.popup()
+                                   menuRecordsContext.menu.popup()
                                }
                            }
 
@@ -413,7 +418,7 @@ Window {
                                             tableView.index(m_row, m_column),
                                             ItemSelectionModel.Rows | ItemSelectionModel.ToggleCurrent)
 
-                                        menuCopy.popup()
+                                        menuRecordsContext.menu.popup()
                                     }
                                 }
             }
@@ -475,86 +480,62 @@ Window {
         }
     }
 
-    Menu {
+    ExtraButtonsMenu {
         id: menuExtraButtons
 
-        font.pointSize: settingsScreen.uiFontSize
+        fontSize: settingsScreen.uiFontSize
 
-        MenuItem {
-            text: qsTr("Save")
+        onItemSaveTriggered: {
+            if(tableView.model !== null) {
+                if(!m_new_document) {
+                    localModelLoader.saveWithCredentials(
+                                tableView.model, sessionManager.username,
+                                sessionManager.password, sessionManager.currentFilePath)
 
-            onTriggered: {
-                if(tableView.model !== null) {
-                    if(!m_new_document) {
-                        localModelLoader.saveWithCredentials(
-                                    tableView.model, sessionManager.username,
-                                    sessionManager.password, sessionManager.currentFilePath)
-
-                        return;
-                    }
-
-                    dialogSaveAs.open()
+                    return;
                 }
+
+                dialogSaveAs.open()
             }
         }
 
-        MenuItem {
-            text: qsTr("Save as")
-
-            onTriggered: {
-                if(tableView.model !== null) {
-                    dialogSaveAs.open()
-                }
+        onItemSaveAsTriggered: {
+            if(tableView.model !== null) {
+                dialogSaveAs.open()
             }
         }
 
-        MenuItem {
-            text: qsTr("Close")
-
-            onTriggered: {
-                if(tableView.model !== null) {
-                    dialogCloseCurrentDocument.open()
-                }
+        onItemCloseTriggered: {
+            if(tableView.model !== null) {
+                screenCloseCurrentDocument.dialog.open()
             }
         }
 
-        MenuItem {
-            text: qsTr("Settings")
-
-            onTriggered: {
-                settingsScreen.dialogSettings.open()
-            }
+        onItemSettingsTriggered: {
+            settingsScreen.dialogSettings.open()
         }
     }
 
-    Menu {
-        id: menuCopy
+    RecordsContextMenu {
+        id: menuRecordsContext
 
-        font.pointSize: settingsScreen.uiFontSize
+        fontSize: settingsScreen.uiFontSize
 
-        MenuItem {
-            text: qsTr("Copy Login")
-
-            onTriggered: {
-                if(tableView.currentRow !== -1) {
-                    clipboard.setText(
-                                tableView.model.data(
-                                    // logins column index, currently == 1
-                                    tableView.model.index(tableView.currentRow, 1), Qt.DisplayRole))
-                }
+        onItemCopyLoginTriggered: {
+            if(tableView.currentRow !== -1) {
+                clipboard.setText(
+                            tableView.model.data(
+                                // logins column index, currently == 1
+                                tableView.model.index(tableView.currentRow, 1), Qt.DisplayRole))
             }
         }
 
-        MenuItem {
-            text: qsTr("Copy Password")
-
-            onTriggered: {
-                if(tableView.currentRow !== -1) {
-                    clipboard.setText(
-                                tableView.model.data(
-                                    // tableView.lastColumnIndex is passwords column and currently == 2
-                                    tableView.model.index(tableView.currentRow, tableView.lastColumnIndex), Qt.DisplayRole))
-                }
+        onItemCopyPasswordTriggered: {
+            if(tableView.currentRow !== -1) {
+                clipboard.setText(
+                            tableView.model.data(
+                                // tableView.lastColumnIndex is passwords column and currently == 2
+                                tableView.model.index(tableView.currentRow, tableView.lastColumnIndex), Qt.DisplayRole))
             }
         }
     }
@@ -587,33 +568,6 @@ Window {
             }
         }
 
-        Dialog {
-            id: dialogRemoveSelectedRecord
-
-            anchors.centerIn: parent
-            width: root.width * 0.66
-            height: root.height * 0.66
-
-            parent: Overlay.overlay
-
-            focus: true
-            modal: true
-            title: qsTr("Delete record")
-            standardButtons: Dialog.Yes | Dialog.No
-            closePolicy: Popup.CloseOnEscape
-
-            font.pointSize: settingsScreen.uiFontSize
-
-            Label {
-                id: txtDialogRemoveSelectedRecordInnerText
-                text: qsTr("Are you sure you want to delete this record?")
-            }
-
-            onAccepted: {
-                tableView.model.removeRows(tableView.currentRow, 1)
-            }
-        }
-
         Button {
             id: btnRemoveRecord
             text: "-"
@@ -624,7 +578,7 @@ Window {
 
             onClicked: {
                 if(tableView.currentRow !== -1) {
-                    dialogRemoveSelectedRecord.open()
+                    screenRemoveSelectedRecord.dialog.open()
                 }
             }
         }
@@ -638,33 +592,7 @@ Window {
             font.pointSize: settingsScreen.uiFontSize
 
             onClicked: {
-                menuCopy.popup()
-            }
-        }
-
-        Dialog {
-            id: dialogCloseCurrentDocument
-            anchors.centerIn: parent
-            width: root.width * 0.66
-            height: root.height * 0.66
-
-            parent: Overlay.overlay
-
-            focus: true
-            modal: true
-            title: qsTr("Save changes reminder")
-            standardButtons: Dialog.Yes | Dialog.No
-            closePolicy: Popup.CloseOnEscape
-
-            font.pointSize: settingsScreen.uiFontSize
-
-            Label {
-                id: txtDialogCloseCurrentDocumentInnerText
-                text: qsTr("All unsaved changes will be lost. Are you sure want to close document?")
-            }
-
-            onAccepted: {
-                localModelLoader.unloadModel(tableView, tableView.model)
+                menuRecordsContext.menu.popup()
             }
         }
 
@@ -693,7 +621,7 @@ Window {
 
             font.pointSize: settingsScreen.uiFontSize
 
-            onClicked: menuExtraButtons.popup()
+            onClicked: menuExtraButtons.menu.popup()
         }
     }
 
@@ -795,6 +723,38 @@ Window {
 
     SettingsManager {
         id: settingsManager
+    }
+
+    CloseCurrentDocumentScreen {
+        id: screenCloseCurrentDocument
+
+        fontSize: settingsScreen.uiFontSize
+
+        onCloseCurrentDocumentConfirmed: {
+            localModelLoader.unloadModel(tableView, tableView.model)
+        }
+    }
+
+    RemoveSelectedRecordScreen {
+        id: screenRemoveSelectedRecord
+
+        fontSize: settingsScreen.uiFontSize
+
+        onRemoveRecordConfirmed: {
+            tableView.model.removeRows(tableView.currentRow, 1)
+        }
+    }
+
+    CloseAppScreen {
+        id: screenCloseApp
+
+        fontSize: settingsScreen.uiFontSize
+
+        onQuitConfirmed: {
+            root.saveAppSettings()
+
+            Qt.exit(0)
+        }
     }
 
     ErrorScreen {

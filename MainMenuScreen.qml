@@ -63,6 +63,8 @@ Item {
             Button {
                 id: btnCreateNewLocalFile
 
+                implicitHeight: btnOpenLocalFile.implicitHeight
+
                 Layout.minimumWidth: grid.width / grid.columns
                 Layout.minimumHeight: grid.height / grid.rows
                 Layout.fillWidth: true
@@ -71,6 +73,14 @@ Item {
                 Layout.columnSpan: 1
 
                 text: qsTr("Create new")
+
+                contentItem: Label {
+
+                    text: btnCreateNewLocalFile.text
+                    verticalAlignment: Text.AlignVCenter
+                    horizontalAlignment: Text.AlignHCenter
+                    wrapMode: Text.WordWrap
+                }
 
                 onClicked: {
                     buttonCreateNewLocalFileClicked()
